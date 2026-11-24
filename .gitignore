@@ -1,0 +1,24 @@
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python caches & test artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Cryptographic keys, certificates & local state (auto-generated on startup)
+*.pem
+*.key
+*.crt
+*.p12
+device_keys/
+logs/*.log
+
+# Environment & OS files
+.env
+.DS_Store
+Thumbs.db
+__MACOSX/

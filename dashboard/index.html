@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure IoT Smart Office — Zero-Trust Enterprise Hub</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070b12;--surface:#0f1623;--surface2:#172133;--surface3:#1e293b;
+  --border:#1f2c40;--border-hi:#334155;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --accent:#38bdf8;--accent-glow:rgba(56,189,248,.16);
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;--purple:#a78bfa;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+input,select,button,textarea{font-family:var(--font)}
+
+/* ═══════════════════ LOGIN SCREEN ═══════════════════ */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:radial-gradient(circle at 20% 20%,rgba(56,189,248,.08),transparent 45%),radial-gradient(circle at 80% 80%,rgba(124,58,237,.08),transparent 45%),linear-gradient(135deg,#070b12 0%,#0f172a 100%)}
+.login-box{background:rgba(15,22,35,.94);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:20px;padding:40px 36px 32px;width:100%;max-width:430px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.login-logo{text-align:center;margin-bottom:26px}
+.login-logo .logo-badge{width:64px;height:64px;margin:0 auto 12px;border-radius:16px;background:linear-gradient(135deg,rgba(56,189,248,.2),rgba(124,58,237,.2));border:1px solid rgba(56,189,248,.35);display:flex;align-items:center;justify-content:center;font-size:32px}
+.login-logo h1{font-size:22px;color:var(--text);font-weight:700;letter-spacing:-.3px}
+.login-logo p{font-size:12px;color:var(--text2);margin-top:6px}
+.tab-row{display:flex;gap:6px;margin-bottom:22px;padding:4px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.tab-btn{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text3);border:none;border-radius:8px;transition:.2s}
+.tab-btn.active{background:var(--accent);color:#06121e;box-shadow:0 2px 10px rgba(56,189,248,.25)}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+.form-group input,.form-group select{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:#090d16;color:var(--text);font-size:14px;outline:none;transition:border .2s,box-shadow .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.login-btn{width:100%;padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:transform .12s,opacity .15s}
+.login-btn:hover{opacity:.93;transform:translateY(-1px)}
+.login-btn:active{transform:translateY(0)}
+.login-btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-admin{background:linear-gradient(135deg,#059669,#10b981);color:#fff}
+.btn-emp{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff}
+.btn-register{background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff}
+.demo-hint{margin-top:14px;padding:10px 12px;border-radius:10px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.18);font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.demo-hint code{color:var(--accent);font-family:var(--mono);font-size:11px}
+.demo-fill-btn{padding:4px 10px;border-radius:6px;border:1px solid rgba(56,189,248,.35);background:rgba(56,189,248,.12);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer}
+.demo-fill-btn:hover{background:rgba(56,189,248,.22)}
+.login-toggle{text-align:center;margin-top:14px;font-size:13px;color:var(--text3)}
+.login-toggle a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
+.login-toggle a:hover{text-decoration:underline}
+.login-error{color:#f87171;font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+.login-success{color:#34d399;font-size:13px;text-align:center;margin-top:10px}
+
+/* ═══════════════════ MAIN DASHBOARD LAYOUT ═══════════════════ */
+#dashboard-screen{display:none;height:100vh}
+.layout{display:flex;height:100%}
+
+/* Sidebar */
+.sidebar{width:250px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.sidebar-header .s-logo{font-size:26px;width:40px;height:40px;border-radius:10px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);display:flex;align-items:center;justify-content:center}
+.sidebar-header .s-title{font-size:15px;font-weight:700;color:var(--text)}
+.sidebar-header .s-sub{font-size:11px;color:var(--accent);font-weight:600}
+.nav-section{padding:12px 10px;border-bottom:1px solid var(--border)}
+.nav-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:0 12px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:.15s;margin-bottom:2px}
+.nav-item:hover{background:rgba(56,189,248,.07);color:var(--text)}
+.nav-item.active{color:var(--accent);background:rgba(56,189,248,.12);font-weight:600}
+.nav-item .ni-left{display:flex;align-items:center;gap:10px}
+.nav-item .ni-icon{font-size:16px;width:20px;text-align:center}
+.nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;display:none}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);background:rgba(7,11,18,.4)}
+.user-pill{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.user-pill .u-avatar{width:38px;height:38px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid var(--border-hi)}
+.user-pill .u-name{font-size:13px;font-weight:600;color:var(--text)}
+.user-pill .u-role{font-size:11px;color:var(--accent);font-weight:600}
+.logout-btn{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.logout-btn:hover{background:#450a0a;border-color:#dc2626;color:#fca5a5}
+
+/* Main Content Area */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-bar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;gap:12px;flex-wrap:wrap}
+.top-bar-left{display:flex;align-items:center;gap:12px}
+.top-bar h2{font-size:18px;font-weight:700;color:var(--text)}
+.db-pill{font-size:11px;padding:4px 10px;border-radius:12px;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.top-bar .server-controls{display:flex;gap:8px;align-items:center}
+.server-badge{font-size:12px;padding:5px 12px;border-radius:16px;font-weight:600}
+.server-on{background:#064e3b;color:#34d399;border:1px solid #059669}
+.server-off{background:#450a0a;color:#f87171;border:1px solid #dc2626}
+.content-scroll{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* Panel visibility */
+.panel{display:none;animation:fadeIn .18s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ═══════════════════ SHARED COMPONENTS ═══════════════════ */
+.cards-grid{display:grid;gap:16px;margin-bottom:24px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color .2s,transform .15s}
+.card:hover{border-color:var(--border-hi)}
+.card-click{cursor:pointer}
+.card-click:hover{transform:translateY(-2px);border-color:rgba(56,189,248,.45)}
+.card-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.card-h .ic{font-size:24px}
+.card-h .ti{font-size:14px;font-weight:600;color:var(--text)}
+.card-h .sub{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.card-val{font-size:26px;font-weight:700;color:var(--accent);margin-bottom:4px;min-height:34px}
+.card-unit{font-size:12px;color:var(--text3);margin-bottom:12px}
+.card-status{font-size:11px;padding:3px 9px;border-radius:12px;display:inline-block;font-weight:600;margin-bottom:14px}
+.st-ok{background:#064e3b;color:#6ee7b7;border:1px solid #059669}
+.st-warn{background:#3b2a04;color:#fde047;border:1px solid #ca8a04}
+.st-err{background:#450a0a;color:#fca5a5;border:1px solid #dc2626}
+.st-idle{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.restricted-tag{background:#450a0a;color:#fca5a5;border:1px solid #991b1b;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.5px}
+.btn{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{opacity:.92}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-sm{padding:7px 12px;font-size:12px;border-radius:7px}
+.btn-full{width:100%}
+.btn-blue{background:#2563eb;color:#fff}
+.btn-green{background:#059669;color:#fff}
+.btn-red{background:#dc2626;color:#fff}
+.btn-purple{background:#7c3aed;color:#fff}
+.btn-subtle{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-subtle:hover{background:var(--surface3);color:#fff}
+.btn-stack{margin-top:8px}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.section-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:none;max-width:440px;box-shadow:0 12px 35px rgba(0,0,0,.5)}
+.toast-ok{background:#064e3b;color:#a7f3d0;border:1px solid #10b981}
+.toast-err{background:#450a0a;color:#fecaca;border:1px solid #ef4444}
+
+/* Clearance & Setpoint */
+.clearance-banner{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.perm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.perm-chip{font-size:11px;font-family:var(--mono);padding:3px 8px;border-radius:6px;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.setpoint-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.setpoint-row input[type=range]{flex:1;accent-color:var(--accent)}
+.setpoint-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);min-width:46px;text-align:right}
+
+/* Tables & Search */
+.filter-input{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;min-width:220px}
+.filter-input:focus{border-color:var(--accent)}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:11px 14px;background:var(--surface2);color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+.data-table tr:hover td{background:rgba(56,189,248,.04)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow-x:auto}
+
+/* Metric Cards */
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.metric .m-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:8px}
+.metric .m-value{font-size:25px;font-weight:700;color:var(--accent)}
+.metric .m-sub{font-size:12px;color:var(--text3);margin-top:6px}
+
+/* Log & Feed panels */
+.log-panel{background:#080c14;border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:20px}
+.log-out{font-family:var(--mono);font-size:12px;line-height:1.7;height:230px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+.log-out::-webkit-scrollbar{width:6px}
+.log-out::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+.l-ok{color:#34d399;font-weight:600}
+.l-err{color:#f87171;font-weight:600}
+.l-warn{color:#fbbf24}
+.l-info{color:#38bdf8}
+.l-crypto{color:#c084fc}
+.l-sec{color:#fb923c}
+.l-dim{color:var(--text3)}
+.feed-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;gap:12px}
+.feed-item:last-child{border-bottom:none}
+
+/* Alerts */
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill-btn{padding:5px 12px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer}
+.pill-btn.active{background:var(--accent);color:#06121e;border-color:var(--accent)}
+.alert-item{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);transition:.15s}
+.alert-item:hover{background:rgba(56,189,248,.03)}
+.alert-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.alert-body{flex:1}
+.alert-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.alert-msg{font-size:12px;color:var(--text2);line-height:1.45}
+.alert-time{font-size:11px;color:var(--text3);margin-top:4px}
+.alert-ack{font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text2);flex-shrink:0;align-self:center;font-weight:600}
+.alert-ack:hover{background:#059669;color:#fff;border-color:#10b981}
+.alert-ack.done{background:#064e3b;color:#6ee7b7;border-color:#059669;cursor:default;pointer-events:none}
+
+@media(max-width:1050px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){
+  .sidebar{width:64px}.sidebar .s-title,.sidebar .s-sub,.nav-label,.nav-item .ni-text,.nav-badge,.user-pill .u-info{display:none}
+  .g4,.g3,.g2{grid-template-columns:1fr}.content-scroll{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════ LOGIN SCREEN ═══════════════════ -->
+<div id="login-screen">
+<div class="login-box">
+  <div class="login-logo">
+    <div class="logo-badge">🏢</div>
+    <h1>Secure IoT Smart Office</h1>
+    <p>TLS 1.3 · AES-256-GCM · ECDH · ECDSA · RBAC</p>
+  </div>
+
+  <div class="tab-row">
+    <button type="button" class="tab-btn active" onclick="showLoginTab('admin')">🔑 Admin Login</button>
+    <button type="button" class="tab-btn" onclick="showLoginTab('employee')">👤 Employee Login</button>
+  </div>
+
+  <!-- Admin Login -->
+  <form id="tab-admin" onsubmit="event.preventDefault();loginAdmin()">
+    <div class="form-group"><label>Admin Email</label><input id="adm-email" type="email" value="admin@smartoffice.io" placeholder="admin@smartoffice.io" required></div>
+    <div class="form-group"><label>Password</label><input id="adm-pass" type="password" placeholder="Enter admin password" required></div>
+    <button type="submit" class="login-btn btn-admin">🔐 Administrator Sign In</button>
+    <div class="demo-hint">
+      <span>Demo: <code>admin@smartoffice.io</code> / <code>Admin@1234</code></span>
+      <button type="button" class="demo-fill-btn" onclick="fillAdminDemo()">Fill</button>
+    </div>
+    <div class="login-error" id="adm-err"></div>
+  </form>
+
+  <!-- Employee Login -->
+  <div id="tab-employee" style="display:none">
+    <form id="emp-login-form" onsubmit="event.preventDefault();loginEmployee()">
+      <div class="form-group"><label>Employee Email</label><input id="emp-email" type="email" placeholder="you@company.com" required></div>
+      <div class="form-group"><label>Password</label><input id="emp-pass" type="password" placeholder="Enter your password" required></div>
+      <button type="submit" class="login-btn btn-emp">👤 Employee Sign In</button>
+      <div class="login-error" id="emp-err"></div>
+      <div class="login-toggle">New employee? <a onclick="showRegister()">Register here</a></div>
+    </form>
+
+    <form id="emp-register-form" style="display:none" onsubmit="event.preventDefault();registerEmployee()">
+      <div class="form-group"><label>Full Name</label><input id="reg-name" placeholder="e.g. Bob Martinez" required></div>
+      <div class="form-group"><label>Email</label><input id="reg-email" type="email" placeholder="bob@company.com" required></div>
+      <div class="form-group"><label>Password</label><input id="reg-pass" type="password" placeholder="Minimum 4 characters" required></div>
+      <div class="form-group"><label>Department</label>
+        <select id="reg-dept">
+          <option>Engineering</option><option>Infrastructure & Security</option>
+          <option>Operations</option><option>Product & Design</option><option>IT Support</option>
+        </select>
+      </div>
+      <button type="submit" class="login-btn btn-register">📝 Register & Create Account</button>
+      <div class="login-error" id="reg-err"></div>
+      <div class="login-success" id="reg-ok"></div>
+      <div class="login-toggle">Already registered? <a onclick="showLogin()">Sign in</a></div>
+    </form>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ MAIN DASHBOARD ═══════════════════ -->
+<div id="dashboard-screen">
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="s-logo">🛡️</div>
+    <div><div class="s-title">Smart Office</div><div class="s-sub">Zero-Trust IoT</div></div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" data-panel="overview" onclick="showPanel('overview')"><span class="ni-left"><span class="ni-icon">📊</span><span class="ni-text">Dashboard</span></span></div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Operations</div>
+    <div class="nav-item" data-panel="access" onclick="showPanel('access')"><span class="ni-left"><span class="ni-icon">🔐</span><span class="ni-text">Access Control</span></span></div>
+    <div class="nav-item" data-panel="attendance" onclick="showPanel('attendance')"><span class="ni-left"><span class="ni-icon">📋</span><span class="ni-text">Attendance</span></span></div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Monitoring</div>
+    <div class="nav-item" data-panel="server-room" onclick="showPanel('server-room')"><span class="ni-left"><span class="ni-icon">🖥️</span><span class="ni-text">Server Room</span></span></div>
+    <div class="nav-item" data-panel="climate" onclick="showPanel('climate')"><span class="ni-left"><span class="ni-icon">🌡️</span><span class="ni-text">Climate</span></span></div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Management</div>
+    <div class="nav-item" data-panel="assets" onclick="showPanel('assets')"><span class="ni-left"><span class="ni-icon">🗄️</span><span class="ni-text">IT Assets</span></span></div>
+    <div class="nav-item" data-panel="alerts" onclick="showPanel('alerts')"><span class="ni-left"><span class="ni-icon">🔔</span><span class="ni-text">Alerts</span></span><span class="nav-badge" id="nav-alert-badge">0</span></div>
+    <div class="nav-item" data-panel="attacks" onclick="showPanel('attacks')"><span class="ni-left"><span class="ni-icon">🛡️</span><span class="ni-text">Security Tests</span></span></div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="u-avatar" id="sb-avatar">👑</div>
+      <div class="u-info"><div class="u-name" id="sb-name">Alice Chen</div><div class="u-role" id="sb-role">ADMIN</div></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">🚪 Sign Out</button>
+  </div>
+</nav>
+
+<div class="main-area">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <h2 id="panel-title">Dashboard Overview</h2>
+      <span class="db-pill" id="db-mode-badge">Storage: Checking...</span>
+    </div>
+    <div class="server-controls">
+      <span class="server-badge server-off" id="srv-badge">⬤ Server Offline</span>
+      <button class="btn btn-green btn-sm" id="btn-srv-start" onclick="startServer()">▶ Start</button>
+      <button class="btn btn-red btn-sm" id="btn-srv-stop" onclick="stopServer()" disabled>■ Stop</button>
+    </div>
+  </div>
+
+  <div class="content-scroll">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="panel active" id="p-overview">
+      <div class="section-head">
+        <div class="section-title">Live System Posture</div>
+        <button class="btn btn-subtle btn-sm" onclick="refreshOverview()">🔄 Refresh</button>
+      </div>
+      <div class="cards-grid g4" id="overview-metrics"></div>
+
+      <div class="section-head"><div class="section-title">Quick Actions</div></div>
+      <div class="cards-grid g4">
+        <div class="card card-click" onclick="showPanel('access')"><div class="card-h"><span class="ic">🔐</span><div><div class="ti">Access Control</div><div class="sub">RBAC Door Locks</div></div></div><div style="color:var(--text3);font-size:12px">Test role-based door access and HVAC climate configuration over TLS 1.3.</div></div>
+        <div class="card card-click" onclick="showPanel('attendance')"><div class="card-h"><span class="ic">📋</span><div><div class="ti">Attendance</div><div class="sub">Badge Check-Ins</div></div></div><div style="color:var(--text3);font-size:12px">Clock in/out and inspect badge-authenticated office entry logs.</div></div>
+        <div class="card card-click" onclick="showPanel('server-room')"><div class="card-h"><span class="ic">🖥️</span><div><div class="ti">Server Room</div><div class="sub">Rack Telemetry</div></div></div><div style="color:var(--text3);font-size:12px">Monitor rack temperature, humidity, cooling fan speed, and lock status.</div></div>
+        <div class="card card-click" onclick="showPanel('attacks')"><div class="card-h"><span class="ic">🛡️</span><div><div class="ti">Security Tests</div><div class="sub">Attack Defense</div></div></div><div style="color:var(--text3);font-size:12px">Simulate rogue devices, tampering, replay, and forged signature attacks.</div></div>
+      </div>
+
+      <div class="section-head"><div class="section-title">Recent Live Activity</div></div>
+      <div class="table-wrap" id="overview-feed"><div style="text-align:center;color:var(--text3);padding:20px">No activity yet. Start the IoT server to begin.</div></div>
+    </div>
+
+    <!-- ═══ ACCESS CONTROL ═══ -->
+    <div class="panel" id="p-access">
+      <div class="clearance-banner">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)" id="clr-title">Active Clearance</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px" id="clr-sub">Policy Decision Point enforces role-bound permissions</div>
+        </div>
+        <div class="perm-chips" id="clr-perms"></div>
+      </div>
+
+      <div class="section-head"><div class="section-title">Office Access Points (RBAC-Controlled)</div></div>
+      <div class="cards-grid g4">
+        <div class="card">
+          <div class="card-h"><span class="ic">🚪</span><div><div class="ti">Main Entrance</div><div class="sub">door_main_entrance</div></div></div>
+          <div class="card-val" id="v-door-main">Locked 🔒</div>
+          <div class="card-unit">General Office Zone</div>
+          <div class="card-status st-idle" id="s-door-main">Ready</div>
+          <button class="btn btn-blue btn-full" onclick="rbacAction('door_main_entrance','unlock')">🔓 Badge In</button>
+          <button class="btn btn-subtle btn-full btn-stack" onclick="rbacAction('door_main_entrance','lock')">🔒 Lock</button>
+        </div>
+
+        <div class="card" style="border-color:#7f1d1d">
+          <div style="display:flex;justify-content:space-between;align-items:start">
+            <div class="card-h"><span class="ic">🔐</span><div><div class="ti">Server Room</div><div class="sub">door_server_room</div></div></div>
+            <span class="restricted-tag">Admin Only</span>
+          </div>
+          <div class="card-val" id="v-door-srv">Locked 🔒</div>
+          <div class="card-unit">High-Security Zone</div>
+          <div class="card-status st-idle" id="s-door-srv">Secured</div>
+          <button class="btn btn-purple btn-full" onclick="rbacAction('door_server_room','unlock')">🔑 Badge In</button>
+          <button class="btn btn-subtle btn-full btn-stack" onclick="rbacAction('door_server_room','lock')">🔒 Lock</button>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="ic">🌡️</span><div><div class="ti">Office HVAC</div><div class="sub">hvac_office</div></div></div>
+          <div class="card-val" id="v-hvac">22.0 °C</div>
+          <div class="card-unit">Climate Controller</div>
+          <div class="card-status st-idle" id="s-hvac">Auto</div>
+          <div class="setpoint-row">
+            <input type="range" id="hvac-slider" min="16" max="28" step="0.5" value="21.0" oninput="document.getElementById('hvac-target').textContent=this.value+'°C'">
+            <span class="setpoint-val" id="hvac-target">21°C</span>
+          </div>
+          <button class="btn btn-blue btn-full" onclick="rbacAction('hvac_office','configure',{setpoint:parseFloat(document.getElementById('hvac-slider').value)})">⚙️ Apply Setpoint</button>
+          <button class="btn btn-subtle btn-full btn-stack" onclick="pollSensor('hvac_office','hvac')">📡 Poll Sensor</button>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="ic">👥</span><div><div class="ti">Meeting Room</div><div class="sub">motion_meeting_room</div></div></div>
+          <div class="card-val" id="v-motion">Clear</div>
+          <div class="card-unit">Occupancy Sensor</div>
+          <div class="card-status st-idle" id="s-motion">Active</div>
+          <button class="btn btn-blue btn-full" onclick="pollSensor('motion_meeting_room','motion')">📡 Poll Occupancy</button>
+        </div>
+      </div>
+
+      <div class="log-panel">
+        <div class="section-head" style="margin-bottom:10px">
+          <div class="section-title" style="color:var(--text2)">Live Access & Crypto Log</div>
+          <button class="btn btn-subtle btn-sm" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="log-out" id="log-access"></div>
+      </div>
+    </div>
+
+    <!-- ═══ ATTENDANCE ═══ -->
+    <div class="panel" id="p-attendance">
+      <div class="section-head">
+        <div class="section-title">Employee Attendance Log</div>
+        <input class="filter-input" id="att-filter" placeholder="🔍 Filter by employee or door..." oninput="renderAttendance()">
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="logMyAttendance('check-in')">📥 Clock In</button>
+        <button class="btn btn-red" onclick="logMyAttendance('check-out')">📤 Clock Out</button>
+        <button class="btn btn-subtle" onclick="refreshAttendance()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Time</th><th>Date</th><th>Employee</th><th>Badge</th><th>Door</th><th>Action</th><th>Status</th></tr></thead><tbody id="att-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">No attendance records yet. Click "Clock In" above.</td></tr></tbody></table></div>
+    </div>
+
+    <!-- ═══ SERVER ROOM MONITOR ═══ -->
+    <div class="panel" id="p-server-room">
+      <div class="section-head"><div class="section-title">Server Room Environment</div><button class="btn btn-subtle btn-sm" onclick="refreshTelemetry()">🔄 Refresh</button></div>
+      <div class="cards-grid g4" id="sr-metrics"></div>
+    </div>
+
+    <!-- ═══ CLIMATE MONITOR ═══ -->
+    <div class="panel" id="p-climate">
+      <div class="section-head"><div class="section-title">Office Climate & Air Quality</div><button class="btn btn-subtle btn-sm" onclick="refreshTelemetry()">🔄 Refresh</button></div>
+      <div class="cards-grid g3" id="cl-metrics"></div>
+    </div>
+
+    <!-- ═══ IT ASSETS ═══ -->
+    <div class="panel" id="p-assets">
+      <div class="section-head"><div class="section-title">IT Asset Inventory</div><button class="btn btn-subtle btn-sm" onclick="refreshAssets()">🔄 Refresh</button></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Asset ID</th><th>Name</th><th>Category</th><th>IP Address</th><th>Location</th><th>Status</th><th>Uptime</th></tr></thead><tbody id="assets-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">Loading...</td></tr></tbody></table></div>
+    </div>
+
+    <!-- ═══ ALERTS ═══ -->
+    <div class="panel" id="p-alerts">
+      <div class="section-head">
+        <div class="filter-pills">
+          <button class="pill-btn active" onclick="setAlertFilter('ALL',this)">All</button>
+          <button class="pill-btn" onclick="setAlertFilter('CRITICAL',this)">🔴 Critical</button>
+          <button class="pill-btn" onclick="setAlertFilter('WARNING',this)">🟡 Warning</button>
+          <button class="pill-btn" onclick="setAlertFilter('INFO',this)">🔵 Info</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green btn-sm" onclick="ackAllAlerts()">✓ Acknowledge All</button>
+          <button class="btn btn-subtle btn-sm" onclick="refreshAlerts()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="alerts-container" style="max-height:520px;overflow-y:auto"><div style="text-align:center;color:var(--text3);padding:30px">Loading alerts...</div></div>
+    </div>
+
+    <!-- ═══ SECURITY TESTS ═══ -->
+    <div class="panel" id="p-attacks">
+      <div class="section-head">
+        <div class="section-title">Cryptographic & Protocol Attack Simulations</div>
+        <button class="btn btn-red btn-sm" id="btn-run-all-attacks" onclick="runAllAttacks()">▶ Run All 4 Simulations</button>
+      </div>
+      <div class="cards-grid g4" id="attack-cards"></div>
+      <div class="log-panel">
+        <div class="section-head" style="margin-bottom:10px">
+          <div class="section-title" style="color:var(--text2)">Live Crypto & RBAC Audit Log</div>
+          <button class="btn btn-subtle btn-sm" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="log-out" id="log"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+const API = (window.location.origin && window.location.origin.startsWith('http'))
+  ? window.location.origin + '/api' : 'http://localhost:8080/api';
+
+let serverOn = false;
+let currentUser = null;
+let allAttendance = [];
+let allAlerts = [];
+let alertFilter = 'ALL';
+let pollTimer = null;
+
+const ATTACK_CARDS = [
+  { id: 'unauthorized', icon: '🕵️', title: 'Rogue Device', desc: 'Unregistered hardware attempts TLS handshake.' },
+  { id: 'tamper',       icon: '🔨', title: 'Tampered Cipher', desc: 'Flip 1 byte in AES-256-GCM ciphertext.' },
+  { id: 'replay',       icon: '🔁', title: 'Replay Attack', desc: 'Replay an identical captured unlock packet.' },
+  { id: 'bad_signature',icon: '🔑', title: 'Forged Signature', desc: 'Sign payload with an unregistered ECDSA key.' }
+];
+
+const PANEL_TITLES = {
+  overview: 'Dashboard Overview', access: 'Access Control (RBAC)', attendance: 'Employee Attendance',
+  'server-room': 'Server Room Monitoring', climate: 'Climate Monitoring',
+  assets: 'IT Asset Management', alerts: 'Alert Management', attacks: 'Security Attack Tests'
+};
+
+function esc(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (ok ? 'toast-ok' : 'toast-err');
+  t.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+/* ═══ LOGIN TABS ═══ */
+function showLoginTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.className = 'tab-btn' + (i === (tab === 'admin' ? 0 : 1) ? ' active' : '');
+  });
+  document.getElementById('tab-admin').style.display = tab === 'admin' ? 'block' : 'none';
+  document.getElementById('tab-employee').style.display = tab === 'employee' ? 'block' : 'none';
+}
+function fillAdminDemo() {
+  document.getElementById('adm-email').value = 'admin@smartoffice.io';
+  document.getElementById('adm-pass').value = 'Admin@1234';
+}
+function showRegister() {
+  document.getElementById('emp-login-form').style.display = 'none';
+  document.getElementById('emp-register-form').style.display = 'block';
+  document.getElementById('reg-err').textContent = '';
+  document.getElementById('reg-ok').textContent = '';
+}
+function showLogin() {
+  document.getElementById('emp-login-form').style.display = 'block';
+  document.getElementById('emp-register-form').style.display = 'none';
+}
+
+async function loginAdmin() {
+  const email = document.getElementById('adm-email').value.trim();
+  const password = document.getElementById('adm-pass').value;
+  document.getElementById('adm-err').textContent = '';
+  try {
+    const r = await (await fetch(API + '/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password })
+    })).json();
+    if (r.ok && r.user.role === 'ADMIN') { currentUser = r.user; enterDashboard(); }
+    else { document.getElementById('adm-err').textContent = r.error || 'Invalid admin credentials.'; }
+  } catch { document.getElementById('adm-err').textContent = 'Server not reachable. Run: python dashboard.py'; }
+}
+
+async function loginEmployee() {
+  const email = document.getElementById('emp-email').value.trim();
+  const password = document.getElementById('emp-pass').value;
+  document.getElementById('emp-err').textContent = '';
+  try {
+    const r = await (await fetch(API + '/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password })
+    })).json();
+    if (r.ok) { currentUser = r.user; enterDashboard(); }
+    else { document.getElementById('emp-err').textContent = r.error || 'Invalid credentials.'; }
+  } catch { document.getElementById('emp-err').textContent = 'Server not reachable.'; }
+}
+
+async function registerEmployee() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+  const department = document.getElementById('reg-dept').value;
+  document.getElementById('reg-err').textContent = '';
+  document.getElementById('reg-ok').textContent = '';
+  if (password.length < 4) { document.getElementById('reg-err').textContent = 'Password must be at least 4 characters.'; return; }
+  try {
+    const r = await (await fetch(API + '/auth/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, email, password, department })
+    })).json();
+    if (r.ok) {
+      document.getElementById('reg-ok').textContent = '✓ Registered successfully! Redirecting to sign in...';
+      document.getElementById('emp-email').value = email;
+      setTimeout(showLogin, 1500);
+    } else {
+      document.getElementById('reg-err').textContent = r.error || 'Registration failed.';
+    }
+  } catch { document.getElementById('reg-err').textContent = 'Server not reachable.'; }
+}
+
+function enterDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard-screen').style.display = 'block';
+  document.getElementById('sb-name').textContent = currentUser.name;
+  document.getElementById('sb-role').textContent = `${currentUser.role} · ${currentUser.badge_id}`;
+  document.getElementById('sb-avatar').textContent = currentUser.role === 'ADMIN' ? '👑' : '👤';
+  renderAttackCards();
+  loadClearanceBanner();
+  syncLiveState();
+  refreshOverview();
+  refreshAssets();
+  refreshAlerts();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(syncLiveState, 5000);
+}
+
+function logout() {
+  clearInterval(pollTimer);
+  currentUser = null;
+  document.getElementById('dashboard-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('adm-pass').value = '';
+  document.getElementById('emp-pass').value = '';
+}
+
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('p-' + id);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.panel === id);
+  });
+  document.getElementById('panel-title').textContent = PANEL_TITLES[id] || id;
+  if (id === 'attendance') refreshAttendance();
+  if (id === 'server-room' || id === 'climate') refreshTelemetry();
+  if (id === 'assets') refreshAssets();
+  if (id === 'alerts') refreshAlerts();
+  if (id === 'overview') refreshOverview();
+  if (id === 'access') syncLiveState();
+}
+
+/* ═══ STATE & SERVER CONTROL ═══ */
+function setServerUI(running) {
+  serverOn = running;
+  const badge = document.getElementById('srv-badge');
+  badge.textContent = running ? '⬤ Server Online' : '⬤ Server Offline';
+  badge.className = 'server-badge ' + (running ? 'server-on' : 'server-off');
+  document.getElementById('btn-srv-start').disabled = running;
+  document.getElementById('btn-srv-stop').disabled = !running;
+}
+
+function applyOfficeState(st) {
+  if (!st) return;
+  document.getElementById('v-door-main').textContent = st.door_main_entrance === 'unlocked' ? 'Unlocked 🔓' : 'Locked 🔒';
+  document.getElementById('v-door-srv').textContent  = st.door_server_room === 'unlocked' ? 'Unlocked 🔓' : 'Locked 🔒';
+  if (st.hvac_office) {
+    document.getElementById('v-hvac').textContent = `${st.hvac_office.setpoint} °C`;
+  }
+  if (st.motion_meeting_room) {
+    document.getElementById('v-motion').textContent = st.motion_meeting_room;
+  }
+}
+
+async function syncLiveState() {
+  try {
+    const r = await (await fetch(API + '/state')).json();
+    if (!r.ok) return;
+    setServerUI(r.running);
+    applyOfficeState(r.office_state);
+
+    const dbPill = document.getElementById('db-mode-badge');
+    dbPill.textContent = r.db_connected ? '🟢 MongoDB Atlas' : '🟡 Local Cache Mode';
+
+    const badge = document.getElementById('nav-alert-badge');
+    if (r.unread_alerts > 0) {
+      badge.textContent = r.unread_alerts;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    const feed = document.getElementById('overview-feed');
+    if (r.recent_events && r.recent_events.length) {
+      feed.innerHTML = r.recent_events.map(ev => `
+        <div class="feed-item">
+          <div><span class="card-status ${ev.ok ? 'st-ok' : 'st-err'}" style="margin:0 8px 0 0">${esc(ev.category)}</span>${esc(ev.message)}</div>
+          <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">${esc(ev.time)}</span>
+        </div>`).join('');
+    }
+  } catch {}
+}
+
+async function startServer() {
+  document.getElementById('btn-srv-start').disabled = true;
+  try {
+    const r = await (await fetch(API + '/server/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' })).json();
+    if (r.ok) { setServerUI(true); toast('IoT Server started on port 65432 (TLS 1.3)'); syncLiveState(); }
+    else { setServerUI(false); toast(r.error || 'Failed to start', false); }
+  } catch { setServerUI(false); toast('Server error', false); }
+}
+
+async function stopServer() {
+  await fetch(API + '/server/stop', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+  setServerUI(false);
+  toast('IoT Server stopped', false);
+  syncLiveState();
+}
+
+async function loadClearanceBanner() {
+  document.getElementById('clr-title').textContent =
+    `${currentUser.name} — Role: ${currentUser.role} (${currentUser.department || 'Staff'})`;
+  try {
+    const r = await (await fetch(API + '/permissions?role=' + encodeURIComponent(currentUser.role))).json();
+    if (r.ok) {
+      document.getElementById('clr-perms').innerHTML = r.permissions
+        .filter(p => !p.resource.endsWith('_01'))
+        .map(p => `<span class="perm-chip">${esc(p.action)}:${esc(p.resource)}</span>`)
+        .join('');
+    }
+  } catch {}
+}
+
+/* ═══ OVERVIEW & TELEMETRY ═══ */
+async function refreshOverview() {
+  try {
+    const [telRes, stRes] = await Promise.all([
+      fetch(API + '/telemetry').then(r => r.json()),
+      fetch(API + '/state').then(r => r.json())
+    ]);
+    if (!telRes.ok) return;
+    const d = telRes.data;
+    const stats = stRes.ok ? stRes.rbac_stats : { granted: 0, denied: 0 };
+    const blocked = stRes.ok ? (stRes.office_state.blocked_attacks || 0) : 0;
+    document.getElementById('overview-metrics').innerHTML = `
+      <div class="metric"><div class="m-label">Office Climate</div><div class="m-value">${d.climate.temperature}°C</div><div class="m-sub">Setpoint: ${d.climate.setpoint}°C · AQI ${d.climate.air_quality_aqi}</div></div>
+      <div class="metric"><div class="m-label">Server Room</div><div class="m-value">${d.server_room.rack_temp}°C</div><div class="m-sub">Humidity: ${d.server_room.humidity}% · ${esc(d.office_state.door_server_room)}</div></div>
+      <div class="metric"><div class="m-label">Security Defense</div><div class="m-value">${blocked + stats.denied} Blocked</div><div class="m-sub">Attacks: ${blocked} · RBAC Denied: ${stats.denied}</div></div>
+      <div class="metric"><div class="m-label">IoT Gateway</div><div class="m-value" style="font-size:21px;color:${serverOn ? '#34d399' : '#f87171'}">${serverOn ? 'TLS 1.3 Online' : 'Offline'}</div><div class="m-sub">AES-256-GCM · ECDSA · ${esc(d.db_status.mode)}</div></div>`;
+  } catch {}
+}
+
+async function refreshTelemetry() {
+  try {
+    const r = await (await fetch(API + '/telemetry')).json();
+    if (!r.ok) return;
+    const d = r.data;
+    document.getElementById('sr-metrics').innerHTML = `
+      <div class="metric"><div class="m-label">Rack Temperature</div><div class="m-value">${d.server_room.rack_temp}°C</div><div class="m-sub">Safe range: 18-24°C</div></div>
+      <div class="metric"><div class="m-label">Humidity</div><div class="m-value">${d.server_room.humidity}%</div><div class="m-sub">Optimal: 40-50%</div></div>
+      <div class="metric"><div class="m-label">Fan & Door Status</div><div class="m-value">${d.server_room.fan_speed_rpm} RPM</div><div class="m-sub">${esc(d.server_room.door_status)}</div></div>
+      <div class="metric"><div class="m-label">UPS & CCTV</div><div class="m-value">${d.server_room.ups_battery}</div><div class="m-sub">CCTV: ${esc(d.server_room.cctv_status)}</div></div>`;
+    document.getElementById('cl-metrics').innerHTML = `
+      <div class="metric"><div class="m-label">Office Temperature</div><div class="m-value">${d.climate.temperature}°C</div><div class="m-sub">Setpoint: ${d.climate.setpoint}°C · Mode: ${esc(d.climate.hvac_mode)}</div></div>
+      <div class="metric"><div class="m-label">Humidity</div><div class="m-value">${d.climate.humidity}%</div><div class="m-sub">Comfort zone: 40-55%</div></div>
+      <div class="metric"><div class="m-label">Air Quality</div><div class="m-value">AQI ${d.climate.air_quality_aqi}</div><div class="m-sub">CO₂: ${d.climate.co2_ppm} ppm</div></div>`;
+  } catch {}
+}
+
+/* ═══ RBAC ACCESS & SENSORS ═══ */
+async function rbacAction(resource, action, extra = {}) {
+  if (!serverOn) { toast('Start the IoT Server first.', false); return; }
+  if (!currentUser) return;
+  const body = { user_id: currentUser.user_id, role: currentUser.role, action, resource, device_id: resource, ...extra };
+  try {
+    const r = await (await fetch(API + '/rbac/action', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    })).json();
+    const el_s = document.getElementById(
+      resource === 'door_server_room' ? 's-door-srv' :
+      resource === 'door_main_entrance' ? 's-door-main' :
+      resource === 'hvac_office' ? 's-hvac' : 's-motion'
+    );
+    applyOfficeState(r.office_state);
+    if (r.ok && r.rbac === 'GRANTED') {
+      if (el_s) { el_s.textContent = '✓ Granted'; el_s.className = 'card-status st-ok'; }
+      toast(`✓ RBAC GRANTED: ${action} on ${resource}`);
+      if (action === 'unlock' && resource.startsWith('door_')) logMyAttendance('check-in', resource);
+    } else {
+      if (el_s) { el_s.textContent = '✗ Denied (403)'; el_s.className = 'card-status st-err'; }
+      toast(`⛔ RBAC DENIED: ${r.reason || 'Insufficient permissions'}`, false);
+    }
+    addLog(r.logs || []);
+    syncLiveState();
+  } catch { toast('Request failed', false); }
+}
+
+async function pollSensor(dev, type) {
+  if (!serverOn) { toast('Start the IoT Server first.', false); return; }
+  try {
+    const r = await (await fetch(API + '/device/send', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ device_id: dev, sensor_type: type })
+    })).json();
+    if (r.ok) {
+      if (dev === 'hvac_office') document.getElementById('v-hvac').textContent = r.value + ' °C';
+      if (dev === 'motion_meeting_room') document.getElementById('v-motion').textContent = r.value;
+      toast(`Telemetry: ${dev} → ${r.value}`);
+    }
+    addLog(r.logs || []);
+    syncLiveState();
+  } catch {}
+}
+
+/* ═══ ATTENDANCE ═══ */
+async function logMyAttendance(action, door = 'door_main_entrance') {
+  if (!currentUser) return;
+  try {
+    await fetch(API + '/attendance/log', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id: currentUser.user_id, name: currentUser.name, badge_id: currentUser.badge_id, door_id: door, action })
+    });
+    toast(`Attendance: ${currentUser.name} ${action}`);
+    refreshAttendance();
+    syncLiveState();
+  } catch {}
+}
+
+async function refreshAttendance() {
+  try {
+    const r = await (await fetch(API + '/attendance')).json();
+    if (!r.ok) return;
+    allAttendance = r.records || [];
+    renderAttendance();
+  } catch {}
+}
+
+function renderAttendance() {
+  const q = (document.getElementById('att-filter').value || '').toLowerCase();
+  const rows = allAttendance.filter(a =>
+    !q || (a.name || '').toLowerCase().includes(q) || (a.door_id || '').toLowerCase().includes(q) || (a.badge_id || '').toLowerCase().includes(q)
+  );
+  const tb = document.getElementById('att-tbody');
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">No matching attendance records.</td></tr>';
+    return;
+  }
+  tb.innerHTML = rows.map(a => `
+    <tr>
+      <td>${esc(a.time_str)}</td><td>${esc(a.date_str)}</td><td>${esc(a.name)}</td>
+      <td><code>${esc(a.badge_id)}</code></td><td>${esc(a.door_id)}</td>
+      <td><span class="card-status ${a.action === 'check-in' ? 'st-ok' : 'st-warn'}" style="margin:0">${esc(a.action)}</span></td>
+      <td>${esc(a.status)}</td>
+    </tr>`).join('');
+}
+
+/* ═══ ASSETS ═══ */
+async function refreshAssets() {
+  try {
+    const r = await (await fetch(API + '/assets')).json();
+    if (!r.ok) return;
+    document.getElementById('assets-tbody').innerHTML = r.assets.map(a => `
+      <tr>
+        <td><code>${esc(a.asset_id)}</code></td><td>${esc(a.name)}</td><td>${esc(a.category)}</td>
+        <td><code>${esc(a.ip_address)}</code></td><td>${esc(a.location)}</td>
+        <td><span class="card-status st-ok" style="margin:0">${esc(a.status)}</span></td><td>${esc(a.uptime)}</td>
+      </tr>`).join('');
+  } catch {}
+}
+
+/* ═══ ALERTS ═══ */
+function setAlertFilter(level, btn) {
+  alertFilter = level;
+  document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAlerts();
+}
+
+async function refreshAlerts() {
+  try {
+    const r = await (await fetch(API + '/alerts')).json();
+    if (!r.ok) return;
+    allAlerts = r.alerts || [];
+    renderAlerts();
+  } catch {}
+}
+
+function renderAlerts() {
+  const c = document.getElementById('alerts-container');
+  const list = alertFilter === 'ALL' ? allAlerts : allAlerts.filter(a => a.level === alertFilter);
+  if (!list.length) {
+    c.innerHTML = '<div style="text-align:center;color:var(--text3);padding:30px">No matching alerts.</div>';
+    return;
+  }
+  const icons = { CRITICAL: '🔴', WARNING: '🟡', INFO: '🔵' };
+  c.innerHTML = list.map(a => `
+    <div class="alert-item">
+      <div class="alert-icon">${icons[a.level] || '🔵'}</div>
+      <div class="alert-body">
+        <div class="alert-title">${esc(a.title)}</div>
+        <div class="alert-msg">${esc(a.message)}</div>
+        <div class="alert-time">${esc(a.time_str || new Date(a.timestamp * 1000).toLocaleString())} · Source: ${esc(a.source)}</div>
+      </div>
+      <button class="alert-ack ${a.acknowledged ? 'done' : ''}" onclick="ackAlert('${esc(a.alert_id)}',this)">
+        ${a.acknowledged ? '✓ Acknowledged' : 'Acknowledge'}
+      </button>
+    </div>`).join('');
+}
+
+async function ackAlert(id, btn) {
+  try {
+    await fetch(API + '/alerts/acknowledge', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ alert_id: id })
+    });
+    btn.textContent = '✓ Acknowledged';
+    btn.className = 'alert-ack done';
+    syncLiveState();
+  } catch {}
+}
+
+async function ackAllAlerts() {
+  try {
+    await fetch(API + '/alerts/acknowledge_all', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+    toast('All alerts acknowledged.');
+    refreshAlerts();
+    syncLiveState();
+  } catch {}
+}
+
+/* ═══ ATTACK TESTS ═══ */
+function renderAttackCards() {
+  document.getElementById('attack-cards').innerHTML = ATTACK_CARDS.map(c => `
+    <div class="card">
+      <div class="card-h"><span class="ic">${c.icon}</span><div><div class="ti">${esc(c.title)}</div><div class="sub">${esc(c.id)}</div></div></div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;min-height:34px">${esc(c.desc)}</div>
+      <div class="card-status st-idle" id="atk-st-${c.id}">Ready</div>
+      <button class="btn btn-red btn-full" onclick="runAttack('${c.id}')">Test Defense</button>
+    </div>`).join('');
+}
+
+async function runAttack(type) {
+  if (!serverOn) { toast('Start the IoT Server first.', false); return; }
+  addLog([`── ATTACK TEST: ${type.toUpperCase()} ──`], 'l-warn');
+  try {
+    const r = await (await fetch(API + '/attack/' + type, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
+    })).json();
+    addLog(r.logs || []);
+    addLog([r.ok ? '✓ Attack correctly DETECTED and BLOCKED' : `✗ Unexpected: ${r.error || ''}`], r.ok ? 'l-ok' : 'l-err');
+    const st = document.getElementById('atk-st-' + type);
+    if (st) {
+      st.textContent = r.ok ? '✓ Blocked' : '✗ Failed';
+      st.className = 'card-status ' + (r.ok ? 'st-ok' : 'st-err');
+    }
+    syncLiveState();
+  } catch (e) { addLog([`Error: ${e.message}`], 'l-err'); }
+}
+
+async function runAllAttacks() {
+  if (!serverOn) { toast('Start the IoT Server first.', false); return; }
+  for (const card of ATTACK_CARDS) {
+    await runAttack(card.id);
+  }
+  toast('All 4 cryptographic defense simulations completed.');
+}
+
+/* ═══ SHARED LOG RENDERER ═══ */
+function addLog(lines, forceCls) {
+  const targets = [document.getElementById('log'), document.getElementById('log-access')];
+  const ts = new Date().toLocaleTimeString();
+  lines.forEach(l => {
+    if (!l || !l.trim()) return;
+    let cls = forceCls || 'l-info';
+    if (!forceCls) {
+      if (l.includes('GRANTED')) cls = 'l-ok';
+      else if (l.includes('DENIED') || l.includes('ERROR') || l.includes('REJECTED') || l.includes('FAILED')) cls = 'l-err';
+      else if (l.includes('CRYPTO')) cls = 'l-crypto';
+      else if (l.includes('SECURITY')) cls = 'l-sec';
+      else if (l.includes('WARNING') || l.includes('ATTACK')) cls = 'l-warn';
+      else if (l.includes('OK') || l.includes('SUCCESS')) cls = 'l-ok';
+    }
+    targets.forEach(el => {
+      if (!el) return;
+      const d = document.createElement('div');
+      d.className = cls;
+      d.textContent = `[${ts}] ${l.trim()}`;
+      el.appendChild(d);
+      el.scrollTop = el.scrollHeight;
+    });
+  });
+}
+
+function clearLog() {
+  ['log', 'log-access'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+}
+
+addLog(['Dashboard loaded. Sign in to begin.'], 'l-dim');
+</script>
+</body>
+</html>
